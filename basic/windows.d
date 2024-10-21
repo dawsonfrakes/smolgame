@@ -11,6 +11,7 @@ alias kernel32 = AliasSeq!(
     Procedure!(HMODULE, "GetModuleHandleW", const(wchar)*),
     Procedure!(HMODULE, "LoadLibraryW", const(wchar)*),
     Procedure!(PROC, "GetProcAddress", HMODULE, const(char)*),
+    Procedure!(void, "Sleep", uint),
     Procedure!(noreturn, "ExitProcess", uint),
 );
 
@@ -29,7 +30,29 @@ enum CW_USEDEFAULT = 0x80000000;
 enum PM_REMOVE = 0x0001;
 enum WM_CREATE = 0x0001;
 enum WM_DESTROY = 0x0002;
+enum WM_SIZE = 0x0005;
+enum WM_PAINT = 0x000F;
 enum WM_QUIT = 0x0012;
+enum WM_ERASEBKGND = 0x0014;
+enum WM_ACTIVATEAPP = 0x001C;
+enum WM_KEYDOWN = 0x0100;
+enum WM_KEYUP = 0x0101;
+enum WM_SYSKEYDOWN = 0x0104;
+enum WM_SYSKEYUP = 0x0105;
+enum WM_SYSCOMMAND = 0x0112;
+enum SC_KEYMENU = 0xF100;
+enum GWL_STYLE = -16;
+enum HWND_TOP = cast(HWND) 0;
+enum SWP_NOSIZE = 0x0001;
+enum SWP_NOMOVE = 0x0002;
+enum SWP_NOZORDER = 0x0004;
+enum SWP_FRAMECHANGED = 0x0020;
+enum MONITOR_DEFAULTTOPRIMARY = 0x00000001;
+enum VK_RETURN = 0x0D;
+enum VK_ESCAPE = 0x1B;
+enum VK_F4 = 0x73;
+enum VK_F10 = 0x79;
+enum VK_F11 = 0x7A;
 
 struct HDC__; alias HDC = HDC__*;
 struct HWND__; alias HWND = HWND__*;
@@ -72,6 +95,21 @@ struct MSG {
     POINT pt;
     uint lPrivate;
 }
+struct WINDOWPLACEMENT {
+    uint length;
+    uint flags;
+    uint showCmd;
+    POINT ptMinPosition;
+    POINT ptMaxPosition;
+    RECT rcNormalPosition;
+    RECT rcDevice;
+}
+struct MONITORINFO {
+    uint cbSize;
+    RECT rcMonitor;
+    RECT rcWork;
+    uint dwFlags;
+}
 
 alias user32 = AliasSeq!(
     Procedure!(int, "SetProcessDPIAware"),
@@ -82,8 +120,27 @@ alias user32 = AliasSeq!(
     Procedure!(int, "PeekMessageW", MSG*, HWND, uint, uint, uint),
     Procedure!(int, "TranslateMessage", const(MSG)*),
     Procedure!(ptrdiff_t, "DispatchMessageW", const(MSG)*),
+    Procedure!(HDC, "GetDC", HWND),
+    Procedure!(int, "ValidateRect", HWND, const(RECT)*),
+    Procedure!(int, "DestroyWindow", HWND),
+    Procedure!(ptrdiff_t, "GetWindowLongPtrW", HWND, int),
+    Procedure!(ptrdiff_t, "SetWindowLongPtrW", HWND, int, ptrdiff_t),
+    Procedure!(int, "GetWindowPlacement", HWND, WINDOWPLACEMENT*),
+    Procedure!(int, "SetWindowPlacement", HWND, const(WINDOWPLACEMENT)*),
+    Procedure!(int, "SetWindowPos", HWND, HWND, int, int, int, int, uint),
+    Procedure!(HMONITOR, "MonitorFromWindow", HWND, uint),
+    Procedure!(int, "GetMonitorInfoW", HMONITOR, MONITORINFO*),
     Procedure!(ptrdiff_t, "DefWindowProcW", HWND, uint, size_t, ptrdiff_t),
     Procedure!(void, "PostQuitMessage", int),
+);
+
+// dwmapi
+enum DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+enum DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+enum DWMWCP_DONOTROUND = 1;
+
+alias dwmapi = AliasSeq!(
+    Procedure!(int, "DwmSetWindowAttribute", HWND, uint, const(void)*, uint),
 );
 
 // winmm
