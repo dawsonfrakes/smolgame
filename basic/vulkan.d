@@ -202,6 +202,19 @@ struct VkDeviceCreateInfo {
     const(char*)* ppEnabledExtensionNames;
     const(VkPhysicalDeviceFeatures)* pEnabledFeatures;
 }
+enum VK_KHR_SURFACE_EXTENSION_NAME = "VK_KHR_surface";
+struct VkSurfaceKHR__; alias VkSurfaceKHR = VkSurfaceKHR__*;
+enum VK_KHR_WIN32_SURFACE_EXTENSION_NAME = "VK_KHR_win32_surface";
+alias VkWin32SurfaceCreateFlagsKHR = VkFlags;
+struct VkWin32SurfaceCreateInfoKHR {
+    import basic.windows : HINSTANCE, HWND;
+
+    VkStructureType sType;
+    const(void)* pNext;
+    VkWin32SurfaceCreateFlagsKHR flags;
+    HINSTANCE hinstance;
+    HWND hwnd;
+}
 
 alias vulkan_global_procs = AliasSeq!(
     Procedure!(VkResult, "vkCreateInstance", const(VkInstanceCreateInfo)*, const(VkAllocationCallbacks)*, VkInstance*),
@@ -211,4 +224,8 @@ alias vulkan_instance_procs = AliasSeq!(
     Procedure!(void, "vkDestroyInstance", VkInstance, const(VkAllocationCallbacks)*),
     Procedure!(VkResult, "vkEnumeratePhysicalDevices", VkInstance, uint*, VkPhysicalDevice*),
     Procedure!(VkResult, "vkCreateDevice", const(VkDeviceCreateInfo)*, const(VkAllocationCallbacks)*, VkDevice*),
+);
+
+alias vulkan_instance_extension_procs = AliasSeq!(
+    Procedure!(VkResult, "vkCreateWin32SurfaceKHR", VkInstance, const(VkWin32SurfaceCreateInfoKHR)*, const(VkAllocationCallbacks)*, VkSurfaceKHR*),
 );

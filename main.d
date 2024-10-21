@@ -4,6 +4,8 @@ enum DEVELOPER = true;
 enum STEAM = true;
 enum VULKAN = true;
 
+import basic;
+
 static if (STEAM) {
     import basic.steam;
 
@@ -24,7 +26,7 @@ static if (VULKAN) {
     __gshared bool vulkan_enabled;
     __gshared VulkanObjects vk;
 
-    static foreach (proc; AliasSeq!(vulkan_global_procs, vulkan_instance_procs)) {
+    static foreach (proc; AliasSeq!(vulkan_global_procs, vulkan_instance_procs, vulkan_instance_extension_procs)) {
         mixin("__gshared extern(System) proc.ReturnType function"~proc.ArgTypes.stringof~" "~proc.name~";");
     }
 
@@ -46,7 +48,7 @@ static if (VULKAN) {
         if (result != VkResult.VK_SUCCESS) return;
         vulkan_enabled = true;
 
-        static foreach (proc; vulkan_instance_procs) {
+        static foreach (proc; AliasSeq!(vulkan_instance_procs, vulkan_instance_extension_procs)) {
             mixin(proc.name~" = "~"cast(typeof("~proc.name~")) vkGetInstanceProcAddr(vk.instance, "~proc.name.stringof~");");
         }
 
@@ -97,7 +99,7 @@ version (Windows) {
         }
     }
 
-    void toggleFullscreen() {
+    void toggle_fullscreen() {
         __gshared WINDOWPLACEMENT save_placement = {WINDOWPLACEMENT.sizeof};
 
         uint style = cast(uint) GetWindowLongPtrW(platform_hwnd, GWL_STYLE);
@@ -208,7 +210,7 @@ version (Windows) {
                         if (!repeat && (!sys || alt || wParam == VK_F10)) {
                             if (pressed) {
                                 if (wParam == VK_F4 && alt) DestroyWindow(platform_hwnd);
-                                if (wParam == VK_F11 || (wParam == VK_RETURN && alt)) toggleFullscreen();
+                                if (wParam == VK_F11 || (wParam == VK_RETURN && alt)) toggle_fullscreen();
                                 if (DEVELOPER && wParam == VK_ESCAPE) DestroyWindow(platform_hwnd);
                             }
                         }
@@ -234,4 +236,4 @@ version (Windows) {
     static foreach (lib_name; STATIC_WINDOWS_LIBRARIES) {
         pragma(lib, lib_name);
     }
-}
+} else static assert(0, "Unsupported OS, no entry point");
