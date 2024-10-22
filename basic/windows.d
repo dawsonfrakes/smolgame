@@ -1,9 +1,9 @@
 module basic.windows;
 
-import basic : AliasSeq, Procedure;
+import basic : AliasSeq, Opaque, Procedure, c_long, c_ulong;
 
 // kernel32
-struct HINSTANCE__; alias HINSTANCE = HINSTANCE__*;
+mixin Opaque!"HINSTANCE";
 alias HMODULE = HINSTANCE;
 alias PROC = extern(Windows) ptrdiff_t function();
 
@@ -11,7 +11,6 @@ alias kernel32 = AliasSeq!(
     Procedure!(HMODULE, "GetModuleHandleW", const(wchar)*),
     Procedure!(HMODULE, "LoadLibraryW", const(wchar)*),
     Procedure!(PROC, "GetProcAddress", HMODULE, const(char)*),
-    Procedure!(void, "Sleep", uint),
     Procedure!(noreturn, "ExitProcess", uint),
 );
 
@@ -54,23 +53,23 @@ enum VK_F4 = 0x73;
 enum VK_F10 = 0x79;
 enum VK_F11 = 0x7A;
 
-struct HDC__; alias HDC = HDC__*;
-struct HWND__; alias HWND = HWND__*;
-struct HMENU__; alias HMENU = HMENU__*;
-struct HICON__; alias HICON = HICON__*;
-struct HBRUSH__; alias HBRUSH = HBRUSH__*;
-struct HCURSOR__; alias HCURSOR = HCURSOR__*;
-struct HMONITOR__; alias HMONITOR = HMONITOR__*;
+mixin Opaque!"HDC";
+mixin Opaque!"HWND";
+mixin Opaque!"HMENU";
+mixin Opaque!"HICON";
+mixin Opaque!"HBRUSH";
+mixin Opaque!"HCURSOR";
+mixin Opaque!"HMONITOR";
 alias WNDPROC = extern(Windows) ptrdiff_t function(HWND, uint, size_t, ptrdiff_t);
 struct POINT {
-    int x;
-    int y;
+    c_long x;
+    c_long y;
 }
 struct RECT {
-    int left;
-    int top;
-    int right;
-    int bottom;
+    c_long left;
+    c_long top;
+    c_long right;
+    c_long bottom;
 }
 struct WNDCLASSEXW {
     uint cbSize;
@@ -91,9 +90,9 @@ struct MSG {
     uint message;
     size_t wParam;
     ptrdiff_t lParam;
-    uint time;
+    c_ulong time;
     POINT pt;
-    uint lPrivate;
+    c_ulong lPrivate;
 }
 struct WINDOWPLACEMENT {
     uint length;
@@ -105,10 +104,10 @@ struct WINDOWPLACEMENT {
     RECT rcDevice;
 }
 struct MONITORINFO {
-    uint cbSize;
+    c_ulong cbSize;
     RECT rcMonitor;
     RECT rcWork;
-    uint dwFlags;
+    c_ulong dwFlags;
 }
 
 alias user32 = AliasSeq!(
@@ -116,7 +115,7 @@ alias user32 = AliasSeq!(
     Procedure!(HICON, "LoadIconW", HINSTANCE, const(wchar)*),
     Procedure!(HCURSOR, "LoadCursorW", HINSTANCE, const(wchar)*),
     Procedure!(ushort, "RegisterClassExW", const(WNDCLASSEXW)*),
-    Procedure!(HWND, "CreateWindowExW", uint, const(wchar)*, const(wchar)*, uint, int, int, int, int, HWND, HMENU, HINSTANCE, void*),
+    Procedure!(HWND, "CreateWindowExW", c_ulong, const(wchar)*, const(wchar)*, c_ulong, int, int, int, int, HWND, HMENU, HINSTANCE, void*),
     Procedure!(int, "PeekMessageW", MSG*, HWND, uint, uint, uint),
     Procedure!(int, "TranslateMessage", const(MSG)*),
     Procedure!(ptrdiff_t, "DispatchMessageW", const(MSG)*),
@@ -140,7 +139,7 @@ enum DWMWA_WINDOW_CORNER_PREFERENCE = 33;
 enum DWMWCP_DONOTROUND = 1;
 
 alias dwmapi = AliasSeq!(
-    Procedure!(int, "DwmSetWindowAttribute", HWND, uint, const(void)*, uint),
+    Procedure!(c_long, "DwmSetWindowAttribute", HWND, c_ulong, const(void)*, c_ulong),
 );
 
 // winmm
