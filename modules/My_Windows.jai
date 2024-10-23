@@ -6,6 +6,7 @@ PROC :: #type () -> s64 #c_call;
 GetModuleHandleW :: (name: *u16) -> HINSTANCE #foreign kernel32;
 LoadLibraryW :: (name: *u16) -> HINSTANCE #foreign kernel32;
 GetProcAddress :: (module: HINSTANCE, name: *u8) -> PROC #foreign kernel32;
+Sleep :: (ms: u32) #foreign kernel32;
 ExitProcess :: (exit_code: u32) #foreign kernel32;
 
 user32 :: #library,system "user32";
@@ -35,6 +36,13 @@ WM_SYSKEYDOWN :: 0x0104;
 WM_SYSKEYUP :: 0x0105;
 WM_SYSCOMMAND :: 0x0112;
 SC_KEYMENU :: 0xF100;
+GWL_STYLE :: -16;
+HWND_TOP :: cast(HWND) null; // @Hack can't use integer literal here with compiler v93?
+MONITOR_DEFAULTTOPRIMARY :: 0x00000001;
+SWP_NOSIZE :: 0x0001;
+SWP_NOMOVE :: 0x0002;
+SWP_NOZORDER :: 0x0004;
+SWP_FRAMECHANGED :: 0x0020;
 VK_RETURN :: 0x0D;
 VK_ESCAPE :: 0x1B;
 VK_F4 :: 0x73;
@@ -82,6 +90,21 @@ MSG :: struct {
     pt : POINT;
     lPrivate : u32;
 }
+WINDOWPLACEMENT :: struct {
+    length : u32;
+    flags : u32;
+    showCmd : u32;
+    ptMinPosition : POINT;
+    ptMaxPosition : POINT;
+    rcNormalPosition : RECT;
+    rcDevice : RECT;
+}
+MONITORINFO :: struct {
+    cbSize : u32;
+    rcMonitor : RECT;
+    rcWork : RECT;
+    dwFlags : u32;
+}
 
 SetProcessDPIAware :: () -> s32 #foreign user32;
 LoadIconW :: (instance: HINSTANCE, icon: *u16) -> HICON #foreign user32;
@@ -96,6 +119,71 @@ GetDC :: (hwnd: HWND) -> HDC #foreign user32;
 DefWindowProcW :: (hwnd: HWND, message: u32, wParam: u64, lParam: s64) -> s64 #foreign user32;
 DestroyWindow :: (hwnd: HWND) -> s32 #foreign user32;
 PostQuitMessage :: (exit_code: s32) #foreign user32;
+GetWindowLongPtrW :: (hwnd: HWND, index: s32) -> s64 #foreign user32;
+SetWindowLongPtrW :: (hwnd: HWND, index: s32, value: s64) -> s64 #foreign user32;
+GetWindowPlacement :: (hwnd: HWND, placement: *WINDOWPLACEMENT) -> s32 #foreign user32;
+SetWindowPlacement :: (hwnd: HWND, placement: *WINDOWPLACEMENT) -> s32 #foreign user32;
+SetWindowPos :: (hwnd: HWND, after: HWND, x: s32, y: s32, width: s32, height: s32, flags: u32) -> s32 #foreign user32;
+MonitorFromWindow :: (hwnd: HWND, flags: u32) -> HMONITOR #foreign user32;
+GetMonitorInfoW :: (monitor: HMONITOR, info: *MONITORINFO) -> s32 #foreign user32;
+ClipCursor :: (rect: *RECT) -> s32 #foreign user32;
+
+gdi32 :: #library,system "gdi32";
+
+PFD_DOUBLEBUFFER :: 0x00000001;
+PFD_DRAW_TO_WINDOW :: 0x00000004;
+PFD_SUPPORT_OPENGL :: 0x00000020;
+PFD_DEPTH_DONTCARE :: 0x20000000;
+
+PIXELFORMATDESCRIPTOR :: struct {
+    nSize : u16;
+    nVersion : u16;
+    dwFlags : u32;
+    iPixelType : u8;
+    cColorBits : u8;
+    cRedBits : u8;
+    cRedShift : u8;
+    cGreenBits : u8;
+    cGreenShift : u8;
+    cBlueBits : u8;
+    cBlueShift : u8;
+    cAlphaBits : u8;
+    cAlphaShift : u8;
+    cAccumBits : u8;
+    cAccumRedBits : u8;
+    cAccumGreenBits : u8;
+    cAccumBlueBits : u8;
+    cAccumAlphaBits : u8;
+    cDepthBits : u8;
+    cStencilBits : u8;
+    cAuxBuffers : u8;
+    iLayerType : u8;
+    bReserved : u8;
+    dwLayerMask : u32;
+    dwVisibleMask : u32;
+    dwDamageMask : u32;
+}
+
+ChoosePixelFormat :: (hdc: HDC, pfd: *PIXELFORMATDESCRIPTOR) -> s32 #foreign gdi32;
+SetPixelFormat :: (hdc: HDC, format: s32, pfd: *PIXELFORMATDESCRIPTOR) -> s32 #foreign gdi32;
+SwapBuffers :: (hdc: HDC) -> s32 #foreign gdi32;
+
+opengl32 :: #library,system "opengl32";
+
+WGL_CONTEXT_MAJOR_VERSION_ARB :: 0x2091;
+WGL_CONTEXT_MINOR_VERSION_ARB :: 0x2092;
+WGL_CONTEXT_FLAGS_ARB :: 0x2094;
+WGL_CONTEXT_PROFILE_MASK_ARB :: 0x9126;
+WGL_CONTEXT_DEBUG_BIT_ARB :: 0x0001;
+WGL_CONTEXT_CORE_PROFILE_BIT_ARB :: 0x00000001;
+
+HGLRC :: #type,distinct *void;
+PFN_wglCreateContextAttribsARB :: #type (HDC, HGLRC, *s32) -> HGLRC #c_call;
+
+wglCreateContext :: (hdc: HDC) -> HGLRC #foreign opengl32;
+wglDeleteContext :: (ctx: HGLRC) -> s32 #foreign opengl32;
+wglMakeCurrent :: (hdc: HDC, ctx: HGLRC) -> s32 #foreign opengl32;
+wglGetProcAddress :: (name: *u8) -> PROC #foreign opengl32;
 
 dwmapi :: #library,system "dwmapi";
 

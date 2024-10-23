@@ -1,15 +1,34 @@
+__save_placement := WINDOWPLACEMENT.{length=size_of(WINDOWPLACEMENT)};
 toggle_fullscreen :: () #no_context {
+    style := GetWindowLongPtrW(platform_hwnd, GWL_STYLE);
+    if style & WS_OVERLAPPEDWINDOW {
+        mi := MONITORINFO.{cbSize=size_of(MONITORINFO)};
+        GetMonitorInfoW(MonitorFromWindow(platform_hwnd, MONITOR_DEFAULTTOPRIMARY), *mi);
 
+        GetWindowPlacement(platform_hwnd, *__save_placement);
+        SetWindowLongPtrW(platform_hwnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+        SetWindowPos(platform_hwnd, HWND_TOP,
+            mi.rcMonitor.left, mi.rcMonitor.top,
+            mi.rcMonitor.right - mi.rcMonitor.left,
+            mi.rcMonitor.bottom - mi.rcMonitor.top,
+            SWP_FRAMECHANGED);
+    } else {
+        SetWindowLongPtrW(platform_hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+        SetWindowPlacement(platform_hwnd, *__save_placement);
+        SetWindowPos(platform_hwnd, xx null, 0, 0, 0, 0, SWP_NOSIZE |
+            SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+    }
 }
 
 update_cursor_clip :: () #no_context {
-
+    ClipCursor(null);
 }
 
 clear_held_keys :: () #no_context {
 
 }
 
+just_resized := true;
 entry :: () {
     platform_hinstance = GetModuleHandleW(null);
 
@@ -31,6 +50,7 @@ entry :: () {
             case WM_SIZE;
                 platform_screen_width = cast,no_check(u16) lParam;
                 platform_screen_height = cast,no_check(u16) (cast,no_check(u64) lParam >> 16);
+                just_resized = true;
             case WM_CREATE;
                 platform_hwnd = hwnd;
                 platform_hdc = GetDC(hwnd);
@@ -61,6 +81,9 @@ entry :: () {
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         xx null, xx null, platform_hinstance, null);
 
+    opengl_init();
+    defer opengl_deinit();
+
     while game_loop := true {
         msg : MSG = ---;
         while PeekMessageW(*msg, xx null, 0, 0, PM_REMOVE) {
@@ -90,6 +113,17 @@ entry :: () {
                 case;
                     DispatchMessageW(*msg);
             }
+        }
+
+        if just_resized {
+            just_resized = false;
+            opengl_resize();
+        }
+
+        opengl_present();
+
+        if sleep_is_granular {
+            Sleep(1);
         }
     }
 }

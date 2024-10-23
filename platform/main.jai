@@ -1,4 +1,5 @@
 DEVELOPER :: true;
+OPENGL :: true;
 
 #import "My_Basic";
 
@@ -14,3 +15,5 @@ platform_screen_height : s32 = ---;
 
     #load "windows.jai";
 }
+
+#if OPENGL #load "renderer_opengl.jai";
