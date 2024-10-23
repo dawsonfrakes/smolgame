@@ -1,9 +1,9 @@
 module basic.windows;
 
-import basic : AliasSeq, Opaque, Procedure, c_long, c_ulong;
+import basic : AliasSeq, Procedure, c_long, c_ulong;
 
 // kernel32
-mixin Opaque!"HINSTANCE";
+struct HINSTANCE__; alias HINSTANCE = HINSTANCE__*;
 alias HMODULE = HINSTANCE;
 alias PROC = extern(Windows) ptrdiff_t function();
 
@@ -53,13 +53,13 @@ enum VK_F4 = 0x73;
 enum VK_F10 = 0x79;
 enum VK_F11 = 0x7A;
 
-mixin Opaque!"HDC";
-mixin Opaque!"HWND";
-mixin Opaque!"HMENU";
-mixin Opaque!"HICON";
-mixin Opaque!"HBRUSH";
-mixin Opaque!"HCURSOR";
-mixin Opaque!"HMONITOR";
+struct HDC__; alias HDC = HDC__*;
+struct HWND__; alias HWND = HWND__*;
+struct HMENU__; alias HMENU = HMENU__*;
+struct HICON__; alias HICON = HICON__*;
+struct HBRUSH__; alias HBRUSH = HBRUSH__*;
+struct HCURSOR__; alias HCURSOR = HCURSOR__*;
+struct HMONITOR__; alias HMONITOR = HMONITOR__*;
 alias WNDPROC = extern(Windows) ptrdiff_t function(HWND, uint, size_t, ptrdiff_t);
 struct POINT {
     c_long x;

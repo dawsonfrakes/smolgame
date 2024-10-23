@@ -1,3 +1,21 @@
+import basic : AliasSeq;
+import basic.windows;
+import config;
+
+static foreach (proc; kernel32) {
+    mixin("extern extern(Windows) proc.ReturnType "~proc.name~proc.ArgTypes.stringof~";");
+}
+
+static foreach (proc; AliasSeq!(user32, dwmapi, winmm)) {
+    mixin("__gshared extern(Windows) proc.ReturnType function"~proc.ArgTypes.stringof~" "~proc.name~";");
+}
+
+__gshared int platform_screen_width;
+__gshared int platform_screen_height;
+__gshared HINSTANCE platform_hinstance;
+__gshared HWND platform_hwnd;
+__gshared HDC platform_hdc;
+
 void toggle_fullscreen() {
     __gshared WINDOWPLACEMENT save_placement = {WINDOWPLACEMENT.sizeof};
 
