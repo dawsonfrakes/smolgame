@@ -18,6 +18,7 @@ static struct {
     VkInstance instance;
 #if BUILD_MODE_DEBUG
     VkDebugUtilsMessengerEXT debug_messenger;
+    bool use_validation_layers;
 #endif
     VkSurfaceKHR surface;
     VkPhysicalDevice physical_device;
@@ -26,8 +27,11 @@ static struct {
     VkDevice device;
     VkQueue graphics_queue;
     VkQueue present_queue;
+    VkCommandPool graphics_command_pool;
+    VkCommandBuffer graphics_command_buffer;
     VkSurfaceFormatKHR surface_format;
     VkPresentModeKHR surface_present_mode;
+    VkRenderPass main_render_pass;
 
     VkSurfaceCapabilitiesKHR surface_capabilities;
     VkSwapchainKHR swapchain;
@@ -56,6 +60,8 @@ static u32 vulkan_debug_callback(
 #endif
 
 static bool vulkan_swapchain_init(void) {
+    if (!vk.instance) goto error;
+
     VkResult result;
 
     result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk.physical_device, vk.surface, &vk.surface_capabilities);
@@ -111,14 +117,14 @@ static bool vulkan_swapchain_init(void) {
 
         static VkFramebufferCreateInfo framebuffer_create_info = {0};
         framebuffer_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        // framebuffer_create_info.renderPass = vk.main_render_pass;
+        framebuffer_create_info.renderPass = vk.main_render_pass;
         framebuffer_create_info.attachmentCount = 1;
         framebuffer_create_info.pAttachments = vk.swapchain_image_views + i;
         framebuffer_create_info.width = vk.surface_capabilities.currentExtent.width;
         framebuffer_create_info.height = vk.surface_capabilities.currentExtent.height;
         framebuffer_create_info.layers = 1;
-        // result = vkCreateFramebuffer(vk.device, &framebuffer_create_info, null, vk.swapchain_framebuffers + i);
-        // if (result != VK_SUCCESS) goto error;
+        result = vkCreateFramebuffer(vk.device, &framebuffer_create_info, null, vk.swapchain_framebuffers + i);
+        if (result != VK_SUCCESS) goto error;
     }
 
     return true;
@@ -158,6 +164,10 @@ static void vulkan_init(void) {
         VkPresentModeKHR surface_present_modes[16];
     } buffers;
 
+#if BUILD_MODE_DEBUG
+    static u8* instances_layers[] = {"VK_LAYER_KHRONOS_validation"};
+#endif
+
     static u8* instance_extensions[] = {
 #if BUILD_MODE_DEBUG
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -182,6 +192,10 @@ static void vulkan_init(void) {
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 #if BUILD_MODE_DEBUG
     instance_create_info.pNext = &debug_messenger_create_info;
+    if (vk.use_validation_layers) {
+        instance_create_info.enabledLayerCount = len(instances_layers);
+        instance_create_info.ppEnabledLayerNames = instances_layers;
+    }
 #endif
     instance_create_info.enabledExtensionCount = len(instance_extensions);
     instance_create_info.ppEnabledExtensionNames = instance_extensions;
@@ -266,6 +280,21 @@ static void vulkan_init(void) {
     vkGetDeviceQueue(vk.device, vk.graphics_queue_family_index, 0, &vk.graphics_queue);
     vkGetDeviceQueue(vk.device, vk.present_queue_family_index, 0, &vk.present_queue);
 
+    static VkCommandPoolCreateInfo command_pool_create_info = {0};
+    command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    command_pool_create_info.queueFamilyIndex = vk.graphics_queue_family_index;
+    result = vkCreateCommandPool(vk.device, &command_pool_create_info, null, &vk.graphics_command_pool);
+    if (result != VK_SUCCESS) goto error;
+
+    static VkCommandBufferAllocateInfo graphics_command_buffer_alloc_info = {0};
+    graphics_command_buffer_alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    graphics_command_buffer_alloc_info.commandPool = vk.graphics_command_pool;
+    graphics_command_buffer_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    graphics_command_buffer_alloc_info.commandBufferCount = 1;
+    result = vkAllocateCommandBuffers(vk.device, &graphics_command_buffer_alloc_info, &vk.graphics_command_buffer);
+    if (result != VK_SUCCESS) goto error;
+
     count = len(buffers.surface_formats);
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(vk.physical_device, vk.surface, &count, buffers.surface_formats);
     if (result != VK_SUCCESS && result != VK_INCOMPLETE) goto error;
@@ -294,6 +323,34 @@ static void vulkan_init(void) {
         }
     }
 
+    static VkAttachmentDescription color_attachment = {0};
+    color_attachment.format = vk.surface_format.format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    static VkAttachmentReference color_attachment_ref = {0};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    static VkSubpassDescription subpass = {0};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_attachment_ref;
+
+    static VkRenderPassCreateInfo render_pass_create_info = {0};
+    render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_create_info.attachmentCount = 1;
+    render_pass_create_info.pAttachments = &color_attachment;
+    render_pass_create_info.subpassCount = 1;
+    render_pass_create_info.pSubpasses = &subpass;
+    result = vkCreateRenderPass(vk.device, &render_pass_create_info, null, &vk.main_render_pass);
+    if (result != VK_SUCCESS) goto error;
+
     return;
 error:
     vulkan_deinit();
@@ -301,8 +358,10 @@ error:
 
 static void vulkan_deinit(void) {
     if (vk.instance) {
-        vulkan_swapchain_deinit();
         if (vk.device) {
+            vulkan_swapchain_deinit();
+            vkDestroyRenderPass(vk.device, vk.main_render_pass, null);
+            vkDestroyCommandPool(vk.device, vk.graphics_command_pool, null);
             vkDestroyDevice(vk.device, null);
         }
         if (vk.debug_messenger) vkDestroyDebugUtilsMessengerEXT(vk.instance, vk.debug_messenger, null);
@@ -315,9 +374,21 @@ static void vulkan_deinit(void) {
 static void vulkan_resize(void) {
     if (!platform_screen_width || !platform_screen_height) return;
 
+    static bool first = true;
+    if (!first) vulkan_swapchain_deinit();
+    else first = false;
     vulkan_swapchain_init();
 }
 
 static void vulkan_present(void) {
+    VkResult result;
 
+    static VkCommandBufferBeginInfo begin_info = {0};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    result = vkBeginCommandBuffer(vk.graphics_command_buffer, &begin_info);
+    if (result != VK_SUCCESS) goto error;
+
+    return;
+error:
+    ;
 }

@@ -2,6 +2,8 @@ typedef u32 VkFlags;
 typedef struct VkInstance__* VkInstance;
 typedef struct VkPhysicalDevice__* VkPhysicalDevice;
 typedef struct VkDevice__* VkDevice;
+typedef struct VkCommandPool__* VkCommandPool;
+typedef struct VkCommandBuffer__* VkCommandBuffer;
 typedef struct VkQueue__* VkQueue;
 typedef struct VkImage__* VkImage;
 typedef struct VkImageView__* VkImageView;
@@ -529,6 +531,27 @@ typedef enum {
     VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK = 1000066013,
 } VkFormat;
 typedef enum {
+    VK_IMAGE_LAYOUT_UNDEFINED = 0,
+    VK_IMAGE_LAYOUT_GENERAL = 1,
+    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL = 2,
+    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL = 3,
+    VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL = 4,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL = 5,
+    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL = 6,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL = 7,
+    VK_IMAGE_LAYOUT_PREINITIALIZED = 8,
+    VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL = 1000117000,
+    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL = 1000117001,
+    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL = 1000241000,
+    VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL = 1000241001,
+    VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL = 1000241002,
+    VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL = 1000241003,
+    VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL = 1000314000,
+    VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL = 1000314001,
+  // Provided by VK_KHR_swapchain
+    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR = 1000001002,
+} VkImageLayout;
+typedef enum {
     VK_SHARING_MODE_EXCLUSIVE = 0,
     VK_SHARING_MODE_CONCURRENT = 1,
 } VkSharingMode;
@@ -556,7 +579,7 @@ typedef void* (*PFN_vkReallocationFunction)(void*, void*, u64, u64, VkSystemAllo
 typedef void (*PFN_vkFreeFunction)(void*, void*);
 typedef void (*PFN_vkInternalAllocationNotification)(void*, u64, VkInternalAllocationType, VkSystemAllocationScope);
 typedef void (*PFN_vkInternalFreeNotification)(void*, u64, VkInternalAllocationType, VkSystemAllocationScope);
-typedef struct VkAllocationCallbacks {
+typedef struct {
     void* pUserData;
     PFN_vkAllocationFunction pfnAllocation;
     PFN_vkReallocationFunction pfnReallocation;
@@ -676,6 +699,52 @@ typedef struct {
     u8** ppEnabledExtensionNames;
     VkPhysicalDeviceFeatures* pEnabledFeatures;
 } VkDeviceCreateInfo;
+typedef VkFlags VkCommandPoolCreateFlags;
+typedef enum {
+    VK_COMMAND_POOL_CREATE_TRANSIENT_BIT = 0x00000001,
+    VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT = 0x00000002,
+} VkCommandPoolCreateFlagBits;
+typedef struct {
+    VkStructureType sType;
+    void* pNext;
+    VkCommandPoolCreateFlags flags;
+    u32 queueFamilyIndex;
+} VkCommandPoolCreateInfo;
+typedef enum {
+    VK_COMMAND_BUFFER_LEVEL_PRIMARY = 0,
+    VK_COMMAND_BUFFER_LEVEL_SECONDARY = 1,
+} VkCommandBufferLevel;
+typedef struct {
+    VkStructureType sType;
+    void* pNext;
+    VkCommandPool commandPool;
+    VkCommandBufferLevel level;
+    u32 commandBufferCount;
+} VkCommandBufferAllocateInfo;
+typedef VkFlags VkCommandBufferUsageFlags;
+typedef enum {
+    VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT = 0x00000001,
+    VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT = 0x00000002,
+    VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT = 0x00000004,
+} VkCommandBufferUsageFlagBits;
+typedef VkFlags VkQueryControlFlags;
+typedef VkFlags VkQueryPipelineStatisticFlags;
+typedef struct VkCommandBufferInheritanceInfo {
+    VkStructureType sType;
+    void* pNext;
+    VkRenderPass renderPass;
+    u32 subpass;
+    VkFramebuffer framebuffer;
+    u32 occlusionQueryEnable;
+    VkQueryControlFlags queryFlags;
+    VkQueryPipelineStatisticFlags pipelineStatistics;
+} VkCommandBufferInheritanceInfo;
+typedef struct {
+    VkStructureType sType;
+    void* pNext;
+    VkCommandBufferUsageFlags flags;
+    VkCommandBufferInheritanceInfo* pInheritanceInfo;
+} VkCommandBufferBeginInfo;
 typedef enum {
     VK_IMAGE_VIEW_TYPE_1D = 0,
     VK_IMAGE_VIEW_TYPE_2D = 1,
@@ -685,7 +754,7 @@ typedef enum {
     VK_IMAGE_VIEW_TYPE_2D_ARRAY = 5,
     VK_IMAGE_VIEW_TYPE_CUBE_ARRAY = 6,
 } VkImageViewType;
-typedef enum VkComponentSwizzle {
+typedef enum {
     VK_COMPONENT_SWIZZLE_IDENTITY = 0,
     VK_COMPONENT_SWIZZLE_ZERO = 1,
     VK_COMPONENT_SWIZZLE_ONE = 2,
@@ -723,6 +792,126 @@ typedef struct {
     VkComponentMapping components;
     VkImageSubresourceRange subresourceRange;
 } VkImageViewCreateInfo;
+typedef VkFlags VkAttachmentDescriptionFlags;
+typedef enum {
+    VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT = 0x00000001,
+} VkAttachmentDescriptionFlagBits;
+typedef VkFlags VkSampleCountFlags;
+typedef enum {
+    VK_SAMPLE_COUNT_1_BIT = 0x00000001,
+    VK_SAMPLE_COUNT_2_BIT = 0x00000002,
+    VK_SAMPLE_COUNT_4_BIT = 0x00000004,
+    VK_SAMPLE_COUNT_8_BIT = 0x00000008,
+    VK_SAMPLE_COUNT_16_BIT = 0x00000010,
+    VK_SAMPLE_COUNT_32_BIT = 0x00000020,
+    VK_SAMPLE_COUNT_64_BIT = 0x00000040,
+} VkSampleCountFlagBits;
+typedef enum {
+    VK_ATTACHMENT_LOAD_OP_LOAD = 0,
+    VK_ATTACHMENT_LOAD_OP_CLEAR = 1,
+    VK_ATTACHMENT_LOAD_OP_DONT_CARE = 2,
+} VkAttachmentLoadOp;
+typedef enum {
+    VK_ATTACHMENT_STORE_OP_STORE = 0,
+    VK_ATTACHMENT_STORE_OP_DONT_CARE = 1,
+    VK_ATTACHMENT_STORE_OP_NONE = 1000301000,
+} VkAttachmentStoreOp;
+typedef struct {
+    VkAttachmentDescriptionFlags flags;
+    VkFormat format;
+    VkSampleCountFlagBits samples;
+    VkAttachmentLoadOp loadOp;
+    VkAttachmentStoreOp storeOp;
+    VkAttachmentLoadOp stencilLoadOp;
+    VkAttachmentStoreOp stencilStoreOp;
+    VkImageLayout initialLayout;
+    VkImageLayout finalLayout;
+} VkAttachmentDescription;
+typedef struct {
+    u32 attachment;
+    VkImageLayout layout;
+} VkAttachmentReference;
+typedef enum {
+    VK_PIPELINE_BIND_POINT_GRAPHICS = 0,
+    VK_PIPELINE_BIND_POINT_COMPUTE = 1,
+} VkPipelineBindPoint;
+typedef VkFlags VkPipelineStageFlags;
+typedef enum {
+    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT = 0x00000001,
+    VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT = 0x00000002,
+    VK_PIPELINE_STAGE_VERTEX_INPUT_BIT = 0x00000004,
+    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT = 0x00000008,
+    VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT = 0x00000010,
+    VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT = 0x00000020,
+    VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT = 0x00000040,
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT = 0x00000080,
+    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT = 0x00000100,
+    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT = 0x00000200,
+    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT = 0x00000400,
+    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT = 0x00000800,
+    VK_PIPELINE_STAGE_TRANSFER_BIT = 0x00001000,
+    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT = 0x00002000,
+    VK_PIPELINE_STAGE_HOST_BIT = 0x00004000,
+    VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT = 0x00008000,
+    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT = 0x00010000,
+    VK_PIPELINE_STAGE_NONE = 0,
+} VkPipelineStageFlagBits;
+typedef VkFlags VkAccessFlags;
+typedef enum {
+    VK_ACCESS_INDIRECT_COMMAND_READ_BIT = 0x00000001,
+    VK_ACCESS_INDEX_READ_BIT = 0x00000002,
+    VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT = 0x00000004,
+    VK_ACCESS_UNIFORM_READ_BIT = 0x00000008,
+    VK_ACCESS_INPUT_ATTACHMENT_READ_BIT = 0x00000010,
+    VK_ACCESS_SHADER_READ_BIT = 0x00000020,
+    VK_ACCESS_SHADER_WRITE_BIT = 0x00000040,
+    VK_ACCESS_COLOR_ATTACHMENT_READ_BIT = 0x00000080,
+    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT = 0x00000100,
+    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT = 0x00000200,
+    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT = 0x00000400,
+    VK_ACCESS_TRANSFER_READ_BIT = 0x00000800,
+    VK_ACCESS_TRANSFER_WRITE_BIT = 0x00001000,
+    VK_ACCESS_HOST_READ_BIT = 0x00002000,
+    VK_ACCESS_HOST_WRITE_BIT = 0x00004000,
+    VK_ACCESS_MEMORY_READ_BIT = 0x00008000,
+    VK_ACCESS_MEMORY_WRITE_BIT = 0x00010000,
+    VK_ACCESS_NONE = 0,
+} VkAccessFlagBits;
+typedef VkFlags VkSubpassDescriptionFlags;
+typedef struct {
+    VkSubpassDescriptionFlags flags;
+    VkPipelineBindPoint pipelineBindPoint;
+    u32 inputAttachmentCount;
+    VkAttachmentReference* pInputAttachments;
+    u32 colorAttachmentCount;
+    VkAttachmentReference* pColorAttachments;
+    VkAttachmentReference* pResolveAttachments;
+    VkAttachmentReference* pDepthStencilAttachment;
+    u32 preserveAttachmentCount;
+    u32* pPreserveAttachments;
+} VkSubpassDescription;
+typedef VkFlags VkDependencyFlags;
+typedef struct {
+    u32 srcSubpass;
+    u32 dstSubpass;
+    VkPipelineStageFlags srcStageMask;
+    VkPipelineStageFlags dstStageMask;
+    VkAccessFlags srcAccessMask;
+    VkAccessFlags dstAccessMask;
+    VkDependencyFlags dependencyFlags;
+} VkSubpassDependency;
+typedef VkFlags VkRenderPassCreateFlags;
+typedef struct {
+    VkStructureType sType;
+    void* pNext;
+    VkRenderPassCreateFlags flags;
+    u32 attachmentCount;
+    VkAttachmentDescription* pAttachments;
+    u32 subpassCount;
+    VkSubpassDescription* pSubpasses;
+    u32 dependencyCount;
+    VkSubpassDependency* pDependencies;
+} VkRenderPassCreateInfo;
 typedef VkFlags VkFramebufferCreateFlags;
 typedef struct {
     VkStructureType sType;
@@ -750,10 +939,16 @@ typedef struct {
     X(VkResult, vkCreateDevice, VkPhysicalDevice, VkDeviceCreateInfo*, VkAllocationCallbacks*, VkDevice*) \
     X(void, vkDestroyDevice, VkDevice, VkAllocationCallbacks*) \
     X(void, vkGetDeviceQueue, VkDevice, u32, u32, VkQueue*) \
+    X(VkResult, vkCreateCommandPool, VkDevice, VkCommandPoolCreateInfo*, VkAllocationCallbacks*, VkCommandPool*) \
+    X(void, vkDestroyCommandPool, VkDevice, VkCommandPool, VkAllocationCallbacks*) \
+    X(VkResult, vkAllocateCommandBuffers, VkDevice, VkCommandBufferAllocateInfo*, VkCommandBuffer*) \
     X(VkResult, vkCreateImageView, VkDevice, VkImageViewCreateInfo*, VkAllocationCallbacks*, VkImageView*) \
     X(void, vkDestroyImageView, VkDevice, VkImageView, VkAllocationCallbacks*) \
     X(VkResult, vkCreateFramebuffer, VkDevice, VkFramebufferCreateInfo*, VkAllocationCallbacks*, VkFramebuffer*) \
-    X(void, vkDestroyFramebuffer, VkDevice, VkFramebuffer, VkAllocationCallbacks*)
+    X(void, vkDestroyFramebuffer, VkDevice, VkFramebuffer, VkAllocationCallbacks*) \
+    X(VkResult, vkCreateRenderPass, VkDevice, VkRenderPassCreateInfo*, VkAllocationCallbacks*, VkRenderPass*) \
+    X(void, vkDestroyRenderPass, VkDevice, VkRenderPass, VkAllocationCallbacks*) \
+    X(VkResult, vkBeginCommandBuffer, VkCommandBuffer, VkCommandBufferBeginInfo*)
 
 // VK_EXT_debug_utils
 #define VK_EXT_DEBUG_UTILS_EXTENSION_NAME "VK_EXT_debug_utils"
