@@ -1,4 +1,8 @@
-#define RENDERER_OPENGL 1
+#define RENDERER_NONE 0
+#define RENDERER_VULKAN 1
+#define RENDERER_OPENGL 2
+
+#define RENDERER RENDERER_VULKAN
 
 #include "../basic/basic.h"
 #include "../basic/windows.h"
@@ -30,7 +34,7 @@ static u8* platform_read_entire_file(u8* file_path) {
         GetFileSizeEx(file, &size);
         void* mem = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if (mem) {
-            ReadFile(file, mem, size, null, null);
+            ReadFile(file, mem, (u32) size, null, null);
             result = mem;
         }
         CloseHandle(file);
@@ -42,7 +46,13 @@ static void platform_free_entire_file(u8* file_data) {
     VirtualFree(file_data, 0, MEM_RELEASE);
 }
 
-#if RENDERER_OPENGL
+#if RENDERER == RENDERER_VULKAN
+#include "renderer_vulkan.c"
+#define renderer_init vulkan_init
+#define renderer_deinit vulkan_deinit
+#define renderer_resize vulkan_resize
+#define renderer_present vulkan_present
+#elif RENDERER == RENDERER_OPENGL
 #include "renderer_opengl.c"
 #define renderer_init opengl_init
 #define renderer_deinit opengl_deinit
@@ -216,3 +226,7 @@ game_loop_end:
 
     ExitProcess(0);
 }
+
+#if COMPILER_MSVC
+int _fltused;
+#endif

@@ -54,9 +54,9 @@
 #endif
 
 #if COMPILER_MSVC
-#define align(X) __declspec(aligned(N))
+#define align(X) __declspec(align(X))
 #elif COMPILER_TCC
-#define align(X) __attribute__((align(X)))
+#define align(X) __attribute__((aligned(X)))
 #else
 #error compiler undefined
 #endif
@@ -102,3 +102,21 @@ typedef struct align(16) {
 typedef struct align(64) {
     f32 e[16];
 } m4;
+
+static inline s64 u8strlen(u8* s) {
+    u8* d = s;
+    while (*d) d += 1;
+    return d - s;
+}
+
+#if 0
+#if COMPILER_TCC && TARGET_CPU_ARCH_AMD64
+void* memmove(void* a, void* b, u64 c) {
+    u8* dest = a;
+    u8* src  = b;
+    if (dest > src) for (u64 i = c; i >= 1; i -= 1) dest[i] = src[i];
+    if (dest < src) for (u64 i = 0; i < c; i += 1)  dest[i] = src[i];
+    return dest;
+}
+#endif
+#endif
