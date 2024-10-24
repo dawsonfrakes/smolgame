@@ -99,3 +99,6 @@ typedef struct align(16) {
     f32 z;
     f32 w;
 } v4;
+typedef struct align(64) {
+    f32 e[16];
+} m4;

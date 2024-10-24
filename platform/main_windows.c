@@ -1,3 +1,5 @@
+#define RENDERER_OPENGL 1
+
 #include "../basic/basic.h"
 #include "../basic/windows.h"
 
@@ -16,6 +18,22 @@ static s32 platform_screen_height;
 static HINSTANCE platform_hinstance;
 static HWND platform_hwnd;
 static HDC platform_hdc;
+#if BUILD_MODE_DEBUG
+static HANDLE platform_stderr;
+#endif
+
+#if RENDERER_OPENGL
+#include "renderer_opengl.c"
+#define renderer_init opengl_init
+#define renderer_deinit opengl_deinit
+#define renderer_resize opengl_resize
+#define renderer_present opengl_present
+#else
+#define renderer_init()
+#define renderer_deinit()
+#define renderer_resize()
+#define renderer_present()
+#endif
 
 static void platform_toggle_fullscreen(void) {
     static WINDOWPLACEMENT save_placement = {sizeof(WINDOWPLACEMENT)};
@@ -65,6 +83,8 @@ static s64 platform_window_proc(HWND hwnd, u32 message, u64 wParam, s64 lParam) 
         case WM_SIZE: {
             platform_screen_width = (u16) (u64) lParam;
             platform_screen_height = (u16) ((u64) lParam >> 16);
+
+            renderer_resize();
             return 0;
         }
         case WM_CREATE: {
@@ -77,9 +97,13 @@ static s64 platform_window_proc(HWND hwnd, u32 message, u64 wParam, s64 lParam) 
                 s32 round_mode = DWMWCP_DONOTROUND;
                 DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &round_mode, 4);
             }
+
+            renderer_init();
             return 0;
         }
         case WM_DESTROY: {
+            renderer_deinit();
+
             PostQuitMessage(0);
             return 0;
         }
@@ -105,6 +129,11 @@ void WinMainCRTStartup(void) {
 #undef X
 
     platform_hinstance = GetModuleHandleW(null);
+
+#if BUILD_MODE_DEBUG
+    AllocConsole();
+    platform_stderr = GetStdHandle(STD_ERROR_HANDLE);
+#endif
 
     bool sleep_is_granular = timeBeginPeriod && timeBeginPeriod(1) == TIMERR_NOERROR;
 
@@ -156,6 +185,8 @@ void WinMainCRTStartup(void) {
                 }
             }
         }
+
+        renderer_present();
 
         if (sleep_is_granular) {
             Sleep(1);

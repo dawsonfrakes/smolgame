@@ -1,4 +1,7 @@
 // kernel32
+#define STD_ERROR_HANDLE ((u32) -12)
+
+typedef void* HANDLE;
 typedef struct HINSTANCE__* HINSTANCE;
 typedef HINSTANCE HMODULE;
 typedef s64 (*PROC)(void);
@@ -7,6 +10,9 @@ typedef s64 (*PROC)(void);
     X(HMODULE, GetModuleHandleW, u16*) \
     X(HMODULE, LoadLibraryW, u16*) \
     X(PROC, GetProcAddress, HMODULE, u8*) \
+    X(s32, AllocConsole, void) \
+    X(HANDLE, GetStdHandle, u32) \
+    X(s32, WriteConsoleA, HANDLE, void*, u32, u32*, void*) \
     X(void, Sleep, u32) \
     X(void, ExitProcess, u32)
 
@@ -127,6 +133,55 @@ typedef struct {
     X(s32, SetWindowPos, HWND, HWND, s32, s32, s32, s32, u32) \
     X(s64, DefWindowProcW, HWND, u32, u64, s64) \
     X(void, PostQuitMessage, s32)
+
+// gdi32
+#define PFD_DOUBLEBUFFER 0x00000001
+#define PFD_DRAW_TO_WINDOW 0x00000004
+#define PFD_SUPPORT_OPENGL 0x00000020
+#define PFD_DEPTH_DONTCARE 0x20000000
+
+typedef struct {
+    u16 nSize;
+    u16 nVersion;
+    u32 dwFlags;
+    u8 iPixelType;
+    u8 cColorBits;
+    u8 cRedBits;
+    u8 cRedShift;
+    u8 cGreenBits;
+    u8 cGreenShift;
+    u8 cBlueBits;
+    u8 cBlueShift;
+    u8 cAlphaBits;
+    u8 cAlphaShift;
+    u8 cAccumBits;
+    u8 cAccumRedBits;
+    u8 cAccumGreenBits;
+    u8 cAccumBlueBits;
+    u8 cAccumAlphaBits;
+    u8 cDepthBits;
+    u8 cStencilBits;
+    u8 cAuxBuffers;
+    u8 iLayerType;
+    u8 bReserved;
+    u32 dwLayerMask;
+    u32 dwVisibleMask;
+    u32 dwDamageMask;
+} PIXELFORMATDESCRIPTOR;
+
+#define GDI32_FUNCTIONS \
+    X(s32, ChoosePixelFormat, HDC, PIXELFORMATDESCRIPTOR*) \
+    X(s32, SetPixelFormat, HDC, s32, PIXELFORMATDESCRIPTOR*) \
+    X(s32, SwapBuffers, HDC)
+
+// opengl32
+typedef struct HGLRC__* HGLRC;
+
+#define OPENGL32_FUNCTIONS \
+    X(HGLRC, wglCreateContext, HDC) \
+    X(s32, wglDeleteContext, HDC) \
+    X(s32, wglMakeCurrent, HDC, HGLRC) \
+    X(PROC, wglGetProcAddress, u8*)
 
 // dwmapi
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
