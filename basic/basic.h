@@ -28,6 +28,10 @@
 #define COMPILER_TCC 0
 #endif
 
+#define null (void*) 0
+#define true (_Bool) 1
+#define false (_Bool) 0
+
 #define offsetof(T, F) ((s64) &((T*) 0)->F)
 #define alignof(T) offsetof(struct { u8 x; T t; }, t)
 #define min(X, Y) ((X) < (Y) ? (X) : (Y))
