@@ -22,6 +22,26 @@ static HDC platform_hdc;
 static HANDLE platform_stderr;
 #endif
 
+static u8* platform_read_entire_file(u8* file_path) {
+    u8* result = null;
+    HANDLE file = CreateFileA(file_path, GENERIC_READ, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    if (file != INVALID_HANDLE_VALUE) {
+        s64 size;
+        GetFileSizeEx(file, &size);
+        void* mem = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        if (mem) {
+            ReadFile(file, mem, size, null, null);
+            result = mem;
+        }
+        CloseHandle(file);
+    }
+    return result;
+}
+
+static void platform_free_entire_file(u8* file_data) {
+    VirtualFree(file_data, 0, MEM_RELEASE);
+}
+
 #if RENDERER_OPENGL
 #include "renderer_opengl.c"
 #define renderer_init opengl_init

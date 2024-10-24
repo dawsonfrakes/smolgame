@@ -1,9 +1,19 @@
 // kernel32
 #define STD_ERROR_HANDLE ((u32) -12)
+#define OPEN_EXISTING 3
+#define FILE_ATTRIBUTE_NORMAL 0x80
+#define MEM_COMMIT 0x00001000
+#define MEM_RESERVE 0x00002000
+#define MEM_RELEASE 0x00008000
+#define GENERIC_READ 0x80000000
+#define PAGE_READWRITE 0x04
+#define INVALID_HANDLE_VALUE ((HANDLE) -1)
 
 typedef void* HANDLE;
 typedef struct HINSTANCE__* HINSTANCE;
 typedef HINSTANCE HMODULE;
+typedef struct { int _unused; } SECURITY_ATTRIBUTES;
+typedef struct { int _unused; } OVERLAPPED;
 typedef s64 (*PROC)(void);
 
 #define KERNEL32_FUNCTIONS \
@@ -13,6 +23,12 @@ typedef s64 (*PROC)(void);
     X(s32, AllocConsole, void) \
     X(HANDLE, GetStdHandle, u32) \
     X(s32, WriteConsoleA, HANDLE, void*, u32, u32*, void*) \
+    X(HANDLE, CreateFileA, u8*, u32, u32, SECURITY_ATTRIBUTES*, u32, u32, HANDLE) \
+    X(s32, CloseHandle, HANDLE) \
+    X(s32, GetFileSizeEx, HANDLE, s64*) \
+    X(s32, ReadFile, HANDLE, void*, u32, u32*, OVERLAPPED*) \
+    X(void*, VirtualAlloc, void*, u64, u32, u32) \
+    X(s32, VirtualFree, void*, u64, u32) \
     X(void, Sleep, u32) \
     X(void, ExitProcess, u32)
 

@@ -14,6 +14,7 @@ OPENGL32_FUNCTIONS
 GL10_FUNCTIONS
 GL20_FUNCTIONS
 GL30_FUNCTIONS
+GL41_FUNCTIONS
 GL42_FUNCTIONS
 GL43_FUNCTIONS
 GL45_FUNCTIONS
@@ -70,6 +71,7 @@ static void opengl_platform_init(void) {
 #define X(RET, NAME, ...) NAME = (RET (*)(__VA_ARGS__)) wglGetProcAddress(#NAME);
     GL20_FUNCTIONS
     GL30_FUNCTIONS
+    GL41_FUNCTIONS
     GL42_FUNCTIONS
     GL43_FUNCTIONS
     GL45_FUNCTIONS
@@ -123,6 +125,7 @@ static u32 opengl_main_fbo_depth;
 static u32 basic_mesh_vao;
 static u32 basic_mesh_ibo;
 static u32 basic_mesh_shader;
+static u32 basic_mesh_texture;
 
 static void opengl_init(void) {
     opengl_platform_init();
@@ -207,8 +210,9 @@ static void opengl_init(void) {
     "#version 450\n"
     "layout(location = 1) in vec2 f_texcoord;\n"
     "layout(location = 0) out vec4 color;\n"
+    "layout(location = 0) uniform sampler2D u_texture[32];\n"
     "void main() {\n"
-    "   color = vec4(f_texcoord, 1.0, 1.0);\n"
+    "   color = texture(u_texture[0], f_texcoord);\n"
     "}\n";
     u32 fshader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fshader, 1, &fsrc, null);
@@ -224,7 +228,25 @@ static void opengl_init(void) {
     glDeleteShader(fshader);
     glDeleteShader(vshader);
 
+    for (u8 i = 0; i < 32; i += 1) glProgramUniform1i(program, i, i);
+
     basic_mesh_shader = program;
+
+    u32 texture;
+    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+    glTextureStorage2D(texture, 1, GL_RGB8, 512, 512);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    u8* bmp_file = platform_read_entire_file("resources/textures/test.bmp");
+    if (bmp_file) {
+        u8* pixels = bmp_file + *(u32*) (bmp_file + 10);
+        s32 width = *(u32*) (bmp_file + 18);
+        s32 height = *(u32*) (bmp_file + 22);
+        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, pixels);
+        platform_free_entire_file(bmp_file);
+    }
+
+    basic_mesh_texture = texture;
 }
 
 static void opengl_deinit(void) {
@@ -261,6 +283,7 @@ static void opengl_present(void) {
     glViewport(0, 0, platform_screen_width, platform_screen_height);
     glUseProgram(basic_mesh_shader);
     glBindVertexArray(basic_mesh_vao);
+    glBindTextureUnit(0, basic_mesh_texture);
     glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES,
         len(basic_mesh_indices), GL_UNSIGNED_BYTE, (void*) 0,
         len(basic_mesh_instances), 0, 0);

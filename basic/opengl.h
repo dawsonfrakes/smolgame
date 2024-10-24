@@ -36,6 +36,12 @@
     X(void, glViewport, s32, s32, u32, u32) \
     X(void, glClear, u32)
 
+// 1.1
+#define GL_RGB8 0x8051
+
+// 1.2
+#define GL_BGR 0x80E0
+
 // 1.5
 #define GL_STREAM_DRAW 0x88E0
 #define GL_STATIC_DRAW 0x88E4
@@ -73,6 +79,10 @@
 #define GL_MAX_COLOR_TEXTURE_SAMPLES 0x910E
 #define GL_MAX_DEPTH_TEXTURE_SAMPLES 0x910F
 
+// 4.1
+#define GL41_FUNCTIONS \
+    X(void, glProgramUniform1i, u32, s32, s32)
+
 // 4.2
 #define GL42_FUNCTIONS \
     X(void, glDrawElementsInstancedBaseVertexBaseInstance, u32, u32, u32, void*, u32, s32, u32)
@@ -106,4 +116,8 @@ typedef void (*GLDEBUGPROC)(u32, u32, u32, u32, u32, u8*, void*);
     X(void, glVertexArrayAttribIFormat, u32, u32, s32, u32, u32) \
     X(void, glCreateBuffers, u32, u32*) \
     X(void, glNamedBufferData, u32, u64, void*, u32) \
-    X(void, glCreateTextures, u32, u32, u32*)
+    X(void, glCreateTextures, u32, u32, u32*) \
+    X(void, glTextureParameteri, u32, u32, s32) \
+    X(void, glTextureStorage2D, u32, u32, u32, u32, u32) \
+    X(void, glTextureSubImage2D, u32, s32, s32, s32, u32, u32, u32, u32, void*) \
+    X(void, glBindTextureUnit, u32, u32)
