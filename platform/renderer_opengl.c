@@ -18,6 +18,7 @@ GL41_FUNCTIONS
 GL42_FUNCTIONS
 GL43_FUNCTIONS
 GL45_FUNCTIONS
+GL_BINDLESS_TEXTURES_FUNCTIONS
 #undef X
 
 static HGLRC opengl_ctx;
@@ -75,6 +76,7 @@ static void opengl_platform_init(void) {
     GL42_FUNCTIONS
     GL43_FUNCTIONS
     GL45_FUNCTIONS
+    GL_BINDLESS_TEXTURES_FUNCTIONS
 #undef X
 }
 
@@ -91,7 +93,7 @@ static void opengl_platform_present(void) {
 typedef struct {
     v3 position;
     v2 texcoord;
-    u32 texture_index;
+    u64 texture_handle;
 } OpenGL_Mesh_Vertex;
 
 typedef struct {
@@ -125,7 +127,7 @@ static u32 opengl_main_fbo_depth;
 static u32 basic_mesh_vao;
 static u32 basic_mesh_ibo;
 static u32 basic_mesh_shader;
-static u32 basic_mesh_texture;
+static u64 basic_mesh_texture;
 
 static void opengl_init(void) {
     opengl_platform_init();
@@ -140,6 +142,26 @@ static void opengl_init(void) {
     glCreateFramebuffers(1, &opengl_main_fbo);
     glCreateRenderbuffers(1, &opengl_main_fbo_color0);
     glCreateRenderbuffers(1, &opengl_main_fbo_depth);
+
+    u32 texture;
+    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+    glTextureStorage2D(texture, 1, GL_RGB8, 512, 512);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    u8* bmp_file = platform_read_entire_file("resources/textures/test.bmp");
+    if (bmp_file) {
+        u8* pixels = bmp_file + *(u32*) (bmp_file + 10);
+        s32 width = *(u32*) (bmp_file + 18);
+        s32 height = *(u32*) (bmp_file + 22);
+        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, pixels);
+        platform_free_entire_file(bmp_file);
+    }
+
+    basic_mesh_texture = glGetTextureHandleARB(texture);
+
+    for (s64 i = 0; i < len(basic_mesh_vertices); i += 1) {
+        basic_mesh_vertices[i].texture_handle = basic_mesh_texture;
+    }
 
     u32 vbo;
     glCreateBuffers(1, &vbo);
@@ -170,10 +192,10 @@ static void opengl_init(void) {
     glVertexArrayAttribBinding(vao, texcoord_attrib, vbo_binding);
     glVertexArrayAttribFormat(vao, texcoord_attrib, 2, GL_FLOAT, false, offsetof(OpenGL_Mesh_Vertex, texcoord));
 
-    u32 texture_index_attrib = 2;
-    glEnableVertexArrayAttrib(vao, texture_index_attrib);
-    glVertexArrayAttribBinding(vao, texture_index_attrib, vbo_binding);
-    glVertexArrayAttribIFormat(vao, texture_index_attrib, 1, GL_UNSIGNED_INT, offsetof(OpenGL_Mesh_Vertex, texture_index));
+    u32 texture_handle_attrib = 2;
+    glEnableVertexArrayAttrib(vao, texture_handle_attrib);
+    glVertexArrayAttribBinding(vao, texture_handle_attrib, vbo_binding);
+    glVertexArrayAttribIFormat(vao, texture_handle_attrib, 2, GL_UNSIGNED_INT, offsetof(OpenGL_Mesh_Vertex, texture_handle));
 
     u32 mvp_attrib = 3;
     for (u8 i = 0; i < 4; i += 1) {
@@ -191,28 +213,31 @@ static void opengl_init(void) {
     basic_mesh_ibo = ibo;
 
     u8* vsrc =
-    "#version 450\n"
+    "#version 460\n"
     "layout(location = 0) in vec3 a_position;\n"
     "layout(location = 1) in vec2 a_texcoord;\n"
-    "layout(location = 2) in uint a_texture_index;\n"
+    "layout(location = 2) in uvec2 a_texture_handle;\n"
     "layout(location = 3) in mat4 i_mvp;\n"
     "layout(location = 7) in uint i_entity_id;\n"
     "layout(location = 1) out vec2 f_texcoord;\n"
+    "layout(location = 2) out flat uvec2 f_texture_handle;\n"
     "void main() {\n"
     "   gl_Position = i_mvp * vec4(a_position, 1.0);"
     "   f_texcoord = a_texcoord;\n"
+    "   f_texture_handle = a_texture_handle;\n"
     "}\n";
     u32 vshader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vshader, 1, &vsrc, null);
     glCompileShader(vshader);
 
     u8* fsrc =
-    "#version 450\n"
+    "#version 460\n"
+    "#extension GL_ARB_bindless_texture : require\n"
     "layout(location = 1) in vec2 f_texcoord;\n"
+    "layout(location = 2) in flat uvec2 f_texture_handle;\n"
     "layout(location = 0) out vec4 color;\n"
-    "layout(location = 0) uniform sampler2D u_texture[32];\n"
     "void main() {\n"
-    "   color = texture(u_texture[0], f_texcoord);\n"
+    "   color = texture(sampler2D(f_texture_handle), f_texcoord);\n"
     "}\n";
     u32 fshader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fshader, 1, &fsrc, null);
@@ -228,25 +253,7 @@ static void opengl_init(void) {
     glDeleteShader(fshader);
     glDeleteShader(vshader);
 
-    for (u8 i = 0; i < 32; i += 1) glProgramUniform1i(program, i, i);
-
     basic_mesh_shader = program;
-
-    u32 texture;
-    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
-    glTextureStorage2D(texture, 1, GL_RGB8, 512, 512);
-    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    u8* bmp_file = platform_read_entire_file("resources/textures/test.bmp");
-    if (bmp_file) {
-        u8* pixels = bmp_file + *(u32*) (bmp_file + 10);
-        s32 width = *(u32*) (bmp_file + 18);
-        s32 height = *(u32*) (bmp_file + 22);
-        glTextureSubImage2D(texture, 0, 0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, pixels);
-        platform_free_entire_file(bmp_file);
-    }
-
-    basic_mesh_texture = texture;
 }
 
 static void opengl_deinit(void) {
@@ -283,10 +290,11 @@ static void opengl_present(void) {
     glViewport(0, 0, platform_screen_width, platform_screen_height);
     glUseProgram(basic_mesh_shader);
     glBindVertexArray(basic_mesh_vao);
-    glBindTextureUnit(0, basic_mesh_texture);
+    glMakeTextureHandleResidentARB(basic_mesh_texture);
     glDrawElementsInstancedBaseVertexBaseInstance(GL_TRIANGLES,
         len(basic_mesh_indices), GL_UNSIGNED_BYTE, (void*) 0,
         len(basic_mesh_instances), 0, 0);
+    glMakeTextureHandleNonResidentARB(basic_mesh_texture);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(0); // @Hack fix for intel default framebuffer resize bug

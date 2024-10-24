@@ -121,3 +121,9 @@ typedef void (*GLDEBUGPROC)(u32, u32, u32, u32, u32, u8*, void*);
     X(void, glTextureStorage2D, u32, u32, u32, u32, u32) \
     X(void, glTextureSubImage2D, u32, s32, s32, s32, u32, u32, u32, u32, void*) \
     X(void, glBindTextureUnit, u32, u32)
+
+// GL_ARB_bindless_texture
+#define GL_BINDLESS_TEXTURES_FUNCTIONS \
+    X(u64, glGetTextureHandleARB, u32) \
+    X(void, glMakeTextureHandleResidentARB, u64) \
+    X(void, glMakeTextureHandleNonResidentARB, u64)
