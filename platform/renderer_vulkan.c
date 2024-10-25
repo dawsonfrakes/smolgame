@@ -388,6 +388,26 @@ static void vulkan_present(void) {
     result = vkBeginCommandBuffer(vk.graphics_command_buffer, &begin_info);
     if (result != VK_SUCCESS) goto error;
 
+    static VkClearValue clear_value = {0};
+    clear_value.color.float32[0] = 0.6f;
+    clear_value.color.float32[1] = 0.2f;
+    clear_value.color.float32[2] = 0.2f;
+    clear_value.color.float32[3] = 1.0f;
+    // clear_value.depthStencil.depth = 0.0f;
+    static VkRenderPassBeginInfo render_pass_begin_info = {0};
+    render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_begin_info.renderPass = vk.main_render_pass;
+    render_pass_begin_info.framebuffer = vk.swapchain_framebuffers[0];
+    render_pass_begin_info.renderArea.extent.width = vk.surface_capabilities.currentExtent.width;
+    render_pass_begin_info.renderArea.extent.height = vk.surface_capabilities.currentExtent.height;
+    render_pass_begin_info.clearValueCount = 1;
+    render_pass_begin_info.pClearValues = &clear_value;
+    vkCmdBeginRenderPass(vk.graphics_command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdEndRenderPass(vk.graphics_command_buffer);
+
+    result = vkEndCommandBuffer(vk.graphics_command_buffer);
+    if (result != VK_SUCCESS) goto error;
+
     return;
 error:
     ;

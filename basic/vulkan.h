@@ -555,15 +555,36 @@ typedef enum {
     VK_SHARING_MODE_EXCLUSIVE = 0,
     VK_SHARING_MODE_CONCURRENT = 1,
 } VkSharingMode;
-typedef struct VkExtent2D {
+typedef struct {
+    s32 x;
+    s32 y;
+} VkOffset2D;
+typedef struct {
     u32 width;
     u32 height;
 } VkExtent2D;
-typedef struct VkExtent3D {
+typedef struct {
     u32 width;
     u32 height;
     u32 depth;
 } VkExtent3D;
+typedef struct {
+    VkOffset2D offset;
+    VkExtent2D extent;
+} VkRect2D;
+typedef union {
+    f32 float32[4];
+    s32 int32[4];
+    u32 uint32[4];
+} VkClearColorValue;
+typedef struct {
+    f32 depth;
+    u32 stencil;
+} VkClearDepthStencilValue;
+typedef union {
+    VkClearColorValue color;
+    VkClearDepthStencilValue depthStencil;
+} VkClearValue;
 typedef enum {
     VK_SYSTEM_ALLOCATION_SCOPE_COMMAND = 0,
     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT = 1,
@@ -877,6 +898,10 @@ typedef enum {
     VK_ACCESS_MEMORY_WRITE_BIT = 0x00010000,
     VK_ACCESS_NONE = 0,
 } VkAccessFlagBits;
+typedef enum {
+    VK_SUBPASS_CONTENTS_INLINE = 0,
+    VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS = 1,
+} VkSubpassContents;
 typedef VkFlags VkSubpassDescriptionFlags;
 typedef struct {
     VkSubpassDescriptionFlags flags;
@@ -912,6 +937,15 @@ typedef struct {
     u32 dependencyCount;
     VkSubpassDependency* pDependencies;
 } VkRenderPassCreateInfo;
+typedef struct {
+    VkStructureType sType;
+    void* pNext;
+    VkRenderPass renderPass;
+    VkFramebuffer framebuffer;
+    VkRect2D renderArea;
+    u32 clearValueCount;
+    VkClearValue* pClearValues;
+} VkRenderPassBeginInfo;
 typedef VkFlags VkFramebufferCreateFlags;
 typedef struct {
     VkStructureType sType;
@@ -948,7 +982,10 @@ typedef struct {
     X(void, vkDestroyFramebuffer, VkDevice, VkFramebuffer, VkAllocationCallbacks*) \
     X(VkResult, vkCreateRenderPass, VkDevice, VkRenderPassCreateInfo*, VkAllocationCallbacks*, VkRenderPass*) \
     X(void, vkDestroyRenderPass, VkDevice, VkRenderPass, VkAllocationCallbacks*) \
-    X(VkResult, vkBeginCommandBuffer, VkCommandBuffer, VkCommandBufferBeginInfo*)
+    X(VkResult, vkBeginCommandBuffer, VkCommandBuffer, VkCommandBufferBeginInfo*) \
+    X(void, vkCmdBeginRenderPass, VkCommandBuffer, VkRenderPassBeginInfo*, VkSubpassContents) \
+    X(void, vkCmdEndRenderPass, VkCommandBuffer) \
+    X(VkResult, vkEndCommandBuffer, VkCommandBuffer)
 
 // VK_EXT_debug_utils
 #define VK_EXT_DEBUG_UTILS_EXTENSION_NAME "VK_EXT_debug_utils"
